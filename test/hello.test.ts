@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import type { APIGatewayProxyEventV2 } from 'aws-lambda'
+import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from 'aws-lambda'
 
 vi.mock('../src/services/geo')
 
@@ -46,7 +46,7 @@ describe('handler', () => {
   it('should return "hello unknown" without calling lookupCity when IP is private', async () => {
     mockIsPrivateIp.mockReturnValue(true)
 
-    const result = await handler(buildEvent('10.0.0.1'))
+    const result = await handler(buildEvent('10.0.0.1')) as APIGatewayProxyStructuredResultV2
 
     expect(mockLookupCity).not.toHaveBeenCalled()
     expect(result.statusCode).toBe(200)
@@ -57,7 +57,7 @@ describe('handler', () => {
     mockIsPrivateIp.mockReturnValue(false)
     mockLookupCity.mockResolvedValue('Austin')
 
-    const result = await handler(buildEvent('1.2.3.4'))
+    const result = await handler(buildEvent('1.2.3.4')) as APIGatewayProxyStructuredResultV2
 
     expect(mockLookupCity).toHaveBeenCalledWith('1.2.3.4')
     expect(result.statusCode).toBe(200)
@@ -68,7 +68,7 @@ describe('handler', () => {
     mockIsPrivateIp.mockReturnValue(false)
     mockLookupCity.mockResolvedValue('unknown')
 
-    const result = await handler(buildEvent('1.2.3.4'))
+    const result = await handler(buildEvent('1.2.3.4')) as APIGatewayProxyStructuredResultV2
 
     expect(result.statusCode).toBe(200)
     expect(JSON.parse(result.body as string)).toEqual({ message: 'hello unknown' })
@@ -78,7 +78,7 @@ describe('handler', () => {
     mockIsPrivateIp.mockReturnValue(false)
     mockLookupCity.mockRejectedValue(new Error('Service unavailable'))
 
-    const result = await handler(buildEvent('1.2.3.4'))
+    const result = await handler(buildEvent('1.2.3.4')) as APIGatewayProxyStructuredResultV2
 
     expect(result.statusCode).toBe(500)
   })
@@ -86,13 +86,13 @@ describe('handler', () => {
   it('should include content-type application/json header on all success responses', async () => {
     mockIsPrivateIp.mockReturnValue(true)
 
-    const privateResult = await handler(buildEvent('10.0.0.1'))
+    const privateResult = await handler(buildEvent('10.0.0.1')) as APIGatewayProxyStructuredResultV2
     expect((privateResult.headers as Record<string, string>)['content-type']).toBe('application/json')
 
     mockIsPrivateIp.mockReturnValue(false)
     mockLookupCity.mockResolvedValue('Austin')
 
-    const publicResult = await handler(buildEvent('1.2.3.4'))
+    const publicResult = await handler(buildEvent('1.2.3.4')) as APIGatewayProxyStructuredResultV2
     expect((publicResult.headers as Record<string, string>)['content-type']).toBe('application/json')
   })
 })
